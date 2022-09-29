@@ -44,7 +44,7 @@ const createUrl = async function (req, res) {
         //=================================== duplicate longurl ====================================
         const duplicateUrl = await urlModel.findOne({ longUrl: longUrl }).select({ longUrl: 1, shortUrl: 1, urlCode: 1, _id: 0 })
         if (duplicateUrl) {
-            return res.status(409).send({ status: true, data: duplicateUrl }) //check the status code later
+            return res.status(409).send({ status: true,msg:"longUrl already exists", data: duplicateUrl }) //check the status code later
         }
 
         //=============================== generating a urlcode and shorturl =================================
