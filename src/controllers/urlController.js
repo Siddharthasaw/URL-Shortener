@@ -29,9 +29,21 @@ const createUrl = async (req, res) => {
 
         if (correctLink == false) return res.status(400).send({ status: false, message: "invalid url please enter valid url!!" });
 
-        //=================================== duplicate longUrl =============================================
-        const duplicateUrl = await urlModel.findOne({ longUrl: longUrl }).select({ longUrl: 1, shortUrl: 1, urlCode: 1, _id: 0 });
-        if (duplicateUrl) return res.status(409).send({ status: true, data: duplicateUrl });         //check the status code later 
+        //=================================== duplicate longurl ====================================
+        const duplicateUrl = await urlModel.findOne({ longUrl: longUrl }).select({ longUrl: 1, shortUrl: 1, urlCode: 1, _id: 0 })
+        if (duplicateUrl) {
+            return res.status(409).send({ status: true, data: duplicateUrl }) //check the status code later
+        }
+
+        //=============================== generating a urlcode and shorturl =================================
+        const urlCode = shortId.generate()
+        const shortUrl = `http://localhost:3000/${urlCode}`
+
+        //=========================== adding urlcode & shorturl keys in body ===============================
+        body.urlCode = urlCode
+        body.shortUrl = shortUrl
+        //============================== creating data ===========================================
+        const createData = await urlModel.create(body)
 
         //=============================== generating a urlCode and shortUrl =================================
         const urlCode = shortId.generate();
