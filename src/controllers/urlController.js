@@ -2,9 +2,35 @@ const axios = require("axios")
 var shortId = require("shortid")
 const urlModel = require("../models/urlModel")
 const { isValid, isValidReqBody } = require('../validations/validator')
+const redis = require("redis");
+const { promisify } = require("util");
 
 
 
+
+
+// //============================= connecting to redis =================================================
+const redisClient = redis.createClient(
+    15497,                // port number 
+    "redis-15497.c212.ap-south-1-1.ec2.cloud.redislabs.com",         //endpoint
+    { no_ready_check: true }
+);
+
+redisClient.auth("a8a7S4xBS4YORJDXv9RzqxqPCD3nWRPR", function (err) { // authentication of password
+    if (err) {
+        console.log(err)
+    };
+});
+
+redisClient.on("connect", async function () {            // port listener
+    console.log("Connected to Redis..");
+});
+
+// //================== connecting setup for redis using get and set method ===============================
+
+const SET_ASYNC = promisify(redisClient.SET).bind(redisClient)  //set function of redis
+const GET_ASYNC = promisify(redisClient.GET).bind(redisClient)  // get function of redis
+const DEL_ASYNC = promisify(redisClient.DEL).bind(redisClient)
 
 
 
@@ -27,6 +53,7 @@ const createUrl = async function (req, res) {
         if (!isValid(longUrl)) {
             return res.status(400).send({ status: false, message: "longUrl format is not valid" })
         }
+
         //============================== if longurl is not correct link ==========================
         let correctLink = false
         await axios.get(longUrl)
@@ -41,10 +68,20 @@ const createUrl = async function (req, res) {
             return res.status(400).send({ status: false, message: "Provide correct longurl!!" })
         };
 
+        //========================================== getting data from cache =============================
+        const cachedData = await GET_ASYNC(`${longUrl}`)
+        // console.log(cachedData)
+        // const hello = await DEL_ASYNC(longUrl)
+        // console.log(hello)
+        if (cachedData) {
+            return res.status(200).send({ status: true, message: "Data from Cache", data: JSON.parse(cachedData) })
+        }
+
         //=================================== duplicate longurl ====================================
         const duplicateUrl = await urlModel.findOne({ longUrl: longUrl }).select({ longUrl: 1, shortUrl: 1, urlCode: 1, _id: 0 })
         if (duplicateUrl) {
-            return res.status(409).send({ status: true,msg:"longUrl already exists", data: duplicateUrl }) //check the status code later
+            await SET_ASYNC(`${longUrl}`, JSON.stringify(duplicateUrl), `EX`, 60 * 10)
+            return res.status(409).send({ status: true, msg: "longUrl already exists in DB", data: duplicateUrl }) //check the status code later
         }
 
         //=============================== generating a urlcode and shorturl =================================
@@ -61,8 +98,8 @@ const createUrl = async function (req, res) {
             longUrl: createData.longUrl,
             shortUrl: createData.shortUrl,
             urlCode: createData.urlCode
-
         }
+        await SET_ASYNC(`${longUrl}`, JSON.stringify(data), `EX`, 60 * 10) // setting data into cache after creating a resource
         return res.status(201).send({ status: true, data: data })
 
 
@@ -71,6 +108,8 @@ const createUrl = async function (req, res) {
         res.status(500).send({ error: err.message })
     }
 }
+
+
 
 
 
@@ -84,14 +123,22 @@ const getUrl = async function (req, res) {
         if (!shortId.isValid(urlCode)) {
             return res.status(400).send({ status: false, message: `Invalid urlCode: ${urlCode} provided` })
         }
-        //============================== if urlcode does not exist ======================================
-        const isData = await urlModel.findOne({ urlCode });
-        if (!isData) {
-            return res.status(404).send({ status: false, message: "this urlCode is not present in our database" });
+        //================================ redirecting using cache ============================================
+        let cachedURLCode = await GET_ASYNC(`${urlCode}`)
+        if (cachedURLCode) {
+            return res.status(302).redirect(cachedURLCode)
         }
-        //========================= redirecting to the longurl =======================================
-        return res.status(302).redirect(isData.longUrl) //302 redirect status response
+        else {
+            //============================== if urlcode does not exist ======================================
+            const isData = await urlModel.findOne({ urlCode: urlCode });
+            if (!isData) {
+                return res.status(404).send({ status: false, message: "this urlCode is not present in our database" });
+            }
 
+            await SET_ASYNC(`${urlCode}`, (isData.longUrl), `EX`, 60 * 10)
+            //========================= redirecting to the longurl =======================================
+            return res.status(302).redirect(isData.longUrl) //302 redirect status response
+        }
 
     }
     catch (err) {
