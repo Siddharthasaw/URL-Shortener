@@ -23,7 +23,7 @@ redisClient.auth("a8a7S4xBS4YORJDXv9RzqxqPCD3nWRPR", function (err) {      // au
 });
 
 redisClient.on("connect", async function () {            // port listener
-    console.log("Connected to Redis..");
+    console.log("Connected to Redis..on port 15497");
 });
 
 // //================== connecting setup for redis using get and set method ===============================
