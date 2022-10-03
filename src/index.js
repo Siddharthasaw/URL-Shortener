@@ -1,17 +1,18 @@
-const express = require("express")
-const app = express()
-const route = require("./routes/route")
-const mongoose = require("mongoose")
+const express = require("express");
+const mongoose = require("mongoose");
+const route = require("./routes/route");
 
-app.use(express.json())
+const app = express();
+
+
+app.use(express.json());
 
 
 mongoose.connect("mongodb+srv://project4_urlshortner:UoRrmlJM7gch0SMz@cluster0.juqiop2.mongodb.net/group15_DB?retryWrites=true&w=majority", {
     useNewUrlParser: true
 })
-    .then(() => console.log("MongoDb is connected on 27017"))
+    .then(() => console.log(">> Database connected successfully.."))
     .catch(err => console.log(err))
-
 
 
 

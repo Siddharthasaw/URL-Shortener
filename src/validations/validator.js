@@ -10,4 +10,4 @@ const isValidReqBody = function (requestBody) {
 
 
 
-module.exports={isValid,isValidReqBody}
+module.exports = { isValid, isValidReqBody }

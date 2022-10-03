@@ -16,7 +16,7 @@ const redisClient = redis.createClient(
     { no_ready_check: true }
 );
 
-redisClient.auth("a8a7S4xBS4YORJDXv9RzqxqPCD3nWRPR", function (err) { // authentication of password
+redisClient.auth("a8a7S4xBS4YORJDXv9RzqxqPCD3nWRPR", function (err) {      // authentication of password
     if (err) {
         console.log(err)
     };
@@ -30,14 +30,12 @@ redisClient.on("connect", async function () {            // port listener
 
 const SET_ASYNC = promisify(redisClient.SET).bind(redisClient)  //set function of redis
 const GET_ASYNC = promisify(redisClient.GET).bind(redisClient)  // get function of redis
-const DEL_ASYNC = promisify(redisClient.DEL).bind(redisClient)
+// const DEL_ASYNC = promisify(redisClient.DEL).bind(redisClient)  // delete function of redis
 
 
 
 //========================================= creating short url ==============================================
-
-
-const createUrl = async function (req, res) {
+const createUrl = async (req, res) => {
     try {
         let body = req.body
         let { longUrl } = body
@@ -57,16 +55,10 @@ const createUrl = async function (req, res) {
         //============================== if longurl is not correct link ==========================
         let correctLink = false
         await axios.get(longUrl)
-            .then((res) => {
-                if (res.status == 200 || res.status == 201) {
-                    correctLink = true;
-                }
-            })
+            .then((res) => { if (res.status == 200 || res.status == 201) correctLink = true; })
             .catch((error) => { correctLink = false })
 
-        if (correctLink == false) {
-            return res.status(400).send({ status: false, message: "Provide correct longurl!!" })
-        };
+        if (correctLink == false) return res.status(400).send({ status: false, message: "invalid url please enter valid url!!" });
 
         //========================================== getting data from cache =============================
         const cachedData = await GET_ASYNC(`${longUrl}`)
@@ -102,10 +94,10 @@ const createUrl = async function (req, res) {
         await SET_ASYNC(`${longUrl}`, JSON.stringify(data), `EX`, 60 * 10) // setting data into cache after creating a resource
         return res.status(201).send({ status: true, data: data })
 
-
+    
     }
     catch (err) {
-        res.status(500).send({ error: err.message })
+        res.status(500).send({ error: err.message });
     }
 }
 
@@ -142,12 +134,9 @@ const getUrl = async function (req, res) {
 
     }
     catch (err) {
-        res.status(500).send({ error: err.message })
+        res.status(500).send({ error: err.message });
     }
 }
-
-
-
 
 
 
