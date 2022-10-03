@@ -11,7 +11,7 @@ app.use(express.json());
 mongoose.connect("mongodb+srv://project4_urlshortner:UoRrmlJM7gch0SMz@cluster0.juqiop2.mongodb.net/group15_DB?retryWrites=true&w=majority", {
     useNewUrlParser: true
 })
-    .then(() => console.log(">> Database connected successfully.."))
+    .then(() => console.log(">> Database connected successfully..on port 27017"))
     .catch(err => console.log(err))
 
 
